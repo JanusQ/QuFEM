@@ -49,7 +49,7 @@ def reduce(array: list, func = lambda now_value, total: now_value + total, initi
 
 class PdBasedProtocolResults():
     def __init__(self, protocol_results: dict, n_qubits: int):
-        # self.protocol_results = protocol_results
+        self.protocol_results = protocol_results
         self.n_qubits = n_qubits
     
         columns = defaultdict(list)
@@ -64,6 +64,12 @@ class PdBasedProtocolResults():
                     # columns[f'{qubit}_measure'].append(real_bitstring[qubit] != '2') # 是否进行读取 0, 1
                 columns['count'].append(count)
 
+        # 全是2的没有实际测量所以这里直接加了一个
+        for qubit in range(n_qubits):
+            columns[f'{qubit}_set'].append('2') # set的值 0, 1, 2 (没有set)
+            columns[f'{qubit}_read'].append('2') # 读到的值 0, 1, 2 (不读)
+        columns['count'].append(10000)
+
         self.df = pd.DataFrame(data=columns)
     
     # def join_prob()
@@ -71,12 +77,13 @@ class PdBasedProtocolResults():
         '''return count'''
         # df = self.df
         # return df[reduce(qubit_set_values, func = lambda qv, prev: (df[f'{qv[0]}_set'] == qv[1]) & prev, initial_total= True)]
+                
         filter_df = self.df
         for qubit, value in qubit_set_values:
             filter_df = filter_df[filter_df[f'{qubit}_set'] == str(value)]
         return filter_df
 
-def construct_bayesian_network(protocol_results: PdBasedProtocolResults, groups, n_qubits):
+def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubits):
     '''这里已经开始考虑是否读取了'''
     # columns = defaultdict(list)
     # for real_bitstring, status_count in protocol_results.items():
@@ -126,8 +133,14 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, groups,
             #         set_type)]
             
             # 替换上面的
-            filter_df = protocol_results[[(other_qubit, str(set_type)) for set_type, other_qubit in zip(set_types, related_qubits)]]
-
+            filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
+            
+            # if 2 in set_types:
+            #     print(filter_df)
+            if len(filter_df) == 0:
+                print('Wanrning\n\n\n')
+            
+            # 这里面要不要改成int
             for read_type in (0, 1, 2):  # 对应1,2,3的操作
                 data[read_type][colum_index] = filter_df[filter_df[f'{qubit}_read'] == str(
                     read_type)]['count'].sum()
@@ -142,11 +155,10 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, groups,
         # P(qubit_read | qubit_set, other qubit_set)
         qubit_cpd = TabularCPD(f"{qubit}_read", 3,
                                data,
-                               evidence=[
-                                   f"{related_qubit}_set" for related_qubit in related_qubits],
-                               evidence_card=[3, 3],
+                               evidence=[f"{related_qubit}_set" for related_qubit in related_qubits],
+                               evidence_card=[3, ] * len(related_qubits),
                                )
-        # print(qubit_cpd)
+        print(qubit_cpd)
 
         cpds.append(qubit_cpd)
 

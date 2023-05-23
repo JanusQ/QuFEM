@@ -116,7 +116,7 @@ def random_group(group, sub_group_size):
     return sub_groups
 
 '''将M比特的变成只包含子集的'''
-def downsampling(stats_count: dict, qubits: list):
+def downsample(stats_count: dict, qubits: list):
     new_stats_count = defaultdict(int)
     
     for bitstring, count in stats_count.items():

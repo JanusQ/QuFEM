@@ -37,7 +37,7 @@ class MultiStageMitigator():
         mitigated_protocol_results = {
             real_bitstring: {
                 measured_bitstring: value * 1000  # 防止精度丢失
-                for measured_bitstring, value in plm.mitigate(status_count).items()  # 可能要乘以一个大的数字防止精度降低
+                for measured_bitstring, value in plm.mitigate(status_count, mask_bitstring = real_bitstring).items()  # 可能要乘以一个大的数字防止精度降低
             }
             for real_bitstring, status_count in protocol_results.items()
         }
@@ -51,7 +51,7 @@ class MultiStageMitigator():
         # print(n_success/n_total)
         return n_success/n_total, mitigated_protocol_results
     
-    def characterize_M(self, protocol_results, group_size = 2, partation_method = 'max-cut'):
+    def characterize_M(self, protocol_results, group_size = 2, partation_method = 'max-cut', BasisMitigator = ParticalLocalMitigator):
         n_qubits = self.n_qubits
         n_stages = self.n_stages
         
@@ -62,15 +62,16 @@ class MultiStageMitigator():
         #     return status_count[bitstring]/sum(status_count.values())
         
         # TODO: 可以整一个树搜索
-        
-        protocol_results = {
-            bitstring: status_count
-            for bitstring, status_count in protocol_results.items()
-            if '2' not in bitstring
-        }
-        
+        if BasisMitigator == ParticalLocalMitigator:
+            # ParticalLocalMitigator没法计算包含非测量的
+            protocol_results = {
+                bitstring: status_count
+                for bitstring, status_count in protocol_results.items()
+                if '2' not in bitstring
+            }
+            
         for stage in range(n_stages):
-            # print('Stage:', stage)
+            print('Stage:', stage)
             
             # random selection
             best_plm = None
@@ -78,8 +79,8 @@ class MultiStageMitigator():
             max_score = 0
             for _ in range(3):  
                 '''目前看来好的划分是会对校准结果产生影响的'''
-                plm = ParticalLocalMitigator(n_qubits)
-                groups = plm.random_group(group_size) #TODO: 用类似集成学习方式划分group
+                plm: ParticalLocalMitigator = BasisMitigator(n_qubits)
+                groups = plm.random_group(group_size) #TODO: 用类似集成学习方式划分group  # [[0, 1], [2]]#
                 plm.characterize_M(protocol_results, groups)
 
                 score, mitgated_protocol_results = self.eval_plm(plm, protocol_results)
@@ -88,14 +89,14 @@ class MultiStageMitigator():
                     max_score = score
                     best_mitgated_protocol_results = mitgated_protocol_results
                     
-                # print('score:', score)
+                print('score:', score)
             
             plm = best_plm
             protocol_results = best_mitgated_protocol_results
             score = max_score
-            # print('max_score:', max_score)
+            print('max_score:', max_score)
             
-            '''一般都比较好，但是和最优相比还是差了'''
+            '''一般都比较好，但是和最优相比可能还是差了'''
             # # max-cut
             # plm = ParticalLocalMitigator(n_qubits)
             # groups = correlation_based_partation(protocol_results, group_size, n_qubits)
@@ -124,7 +125,7 @@ class MultiStageMitigator():
         
     def mitigate(self, stats_counts: dict, threshold: float = None):
         for plm in self.plms:
-            stats_counts = plm.mitigate(stats_counts, threshold)
+            stats_counts = plm.mitigate(stats_counts, threshold =  threshold)
 
             if plm != self.plms[-1]:
                 stats_counts = {

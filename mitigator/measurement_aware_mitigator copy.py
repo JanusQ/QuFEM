@@ -46,22 +46,22 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
         #     self.assign_groups(groups)
 
     # TODO: 放到ParticalLocalMitigator里面
-    # @staticmethod
-    # def assign_groups(groups, n_qubits):
-    #     '''假设groups里面的比特不重叠'''
-    #     qubit_map = []  # 存了mitigate里面对应的格式
-    #     qubit_map_inv = [0] * n_qubits
+    @staticmethod
+    def assign_groups(groups, n_qubits):
+        '''假设groups里面的比特不重叠'''
+        qubit_map = []  # 存了mitigate里面对应的格式
+        qubit_map_inv = [0] * n_qubits
 
-    #     for group in groups:
-    #         # group.sort()
-    #         qubit_map += group
+        for group in groups:
+            # group.sort()
+            qubit_map += group
 
-    #     # 返回原来的位置
-    #     # [2, 0, 1] -> [1, 2, 0]
-    #     for real_pos, old_pos in enumerate(qubit_map):
-    #         qubit_map_inv[old_pos] = real_pos
+        # 返回原来的位置
+        # [2, 0, 1] -> [1, 2, 0]
+        for real_pos, old_pos in enumerate(qubit_map):
+            qubit_map_inv[old_pos] = real_pos
         
-    #     return qubit_map, qubit_map_inv
+        return qubit_map, qubit_map_inv
             
     def characterize_M(self, protocol_results, groups: List[List[int]]):
         protocol_results = PdBasedProtocolResults(protocol_results, self.n_qubits)
@@ -70,21 +70,18 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
 
         
     @lru_cache
-    def unmeasureed_index(self, group_size):
+    def unmeasure_index(self, group_size):
         return np.array([index for index, bitstring in enumerate(all_bitstrings(group_size, base = 3)) if '2' not in bitstring])
     
-    # 这里的映射很乱
     @lru_cache
     def get_partical_local_mitigator(self, measured_qubits: List) -> ParticalLocalMitigator:
         # 将大的qubit set映射到小的qubit set，比如 measured_qubits = [1, 2, 5] -> [0, 1, 2]
         n_qubits = self.n_qubits
-        n_measured_qubits = len(measured_qubits)
-        
         bayesian_infer_model: VariableElimination =  self.bayesian_infer_model
         
         # 编程按照0,1,2顺序排的group
         groups = [
-            tuple([qubit for qubit in group if qubit in measured_qubits])
+            tuple([measured_qubits.index(qubit) for qubit in group if qubit in measured_qubits])
             for group in self.groups
         ]
         groups = [
@@ -92,20 +89,12 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
             for group in groups
             if len(group) != 0
         ]
+            
+        # assert len(groups) <= len(measured_qubits)
         
-        # # 传给ParticalLocalMitigator中需要做一次变化，从比如 measured_qubits = [1, 2, 5] 变成 [0, 1, 2]
-        inner_qubit_map = []
-        for group in groups:
-            inner_qubit_map += [measured_qubits.index(qubit) for qubit in group]
-
-        # 返回原来的位置
-        inner_qubit_map_inv = [0] * n_measured_qubits
-        for real_pos, old_pos in enumerate(inner_qubit_map):
-            inner_qubit_map_inv[old_pos] = real_pos
+        # inner_qubit_map, inner_qubit_map_inv = self.assign_groups(groups, len(measured_qubits))
+        # assert len(inner_qubit_map) == len(measured_qubits)
         
-        # inner_qubit_map, inner_qubit_map_inv = self.assign_groups(
-        #     [[measured_qubits.index(qubit) for qubit in group] for group in groups ], len(measured_qubits))
-
         group2M = {}
         for group in groups:
             group_size = len(group)
@@ -118,19 +107,24 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
                         for qubit in range(n_qubits)
                     }
                 )
+                # posterior_p = bayesian_infer_model.query([f'{qubit}_read' for qubit in group], evidence={
+                #     f'{group[index]}_set': int(bit)
+                #     for index, bit in enumerate(bitstring)
+                # })
                 posterior_v = posterior_p.values.reshape(3**group_size) #变成了M中列的数据
+                
                 # 剃掉包含2的
-                posterior_v = posterior_v[self.unmeasureed_index(group_size)]
+                posterior_v = posterior_v[self.unmeasure_index(group_size)]
                 
                 assert abs(sum(posterior_v) - 1) < 1e-2, sum(posterior_v)  # 后面可以删了
                 
                 M[:,int(bitstring, base=2)] =  posterior_v
-
+                # print(posterior_v)
             
-            remap_group = tuple([inner_qubit_map.index(measured_qubits.index(qubit)) for qubit in group])
+            remap_group = tuple([inner_qubit_map.index(qubit) for qubit in group])
             group2M[remap_group] = M
 
-        return ParticalLocalMitigator(n_measured_qubits, group2M), inner_qubit_map, inner_qubit_map_inv
+        return ParticalLocalMitigator(len(measured_qubits), group2M), inner_qubit_map_inv
             
     
     def mitigate(self, stats_counts: dict, circuit: QuantumCircuit = None, threshold: float = None, mask_bitstring: str = None):
@@ -152,11 +146,9 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
         else:
             measured_qubits = tuple(range(n_qubits))
         
-        plm, inner_qubit_map, inner_qubit_map_inv = self.get_partical_local_mitigator(measured_qubits)
-        
         stats_counts = downsample(stats_counts, measured_qubits)  # 剃掉不测量的比特
-        stats_counts = self.permute(stats_counts, inner_qubit_map)  # TODO: 怎么都不感觉这里写对
         
+        plm, inner_qubit_map_inv = self.get_partical_local_mitigator(measured_qubits)
         
         mitigated_stats_counts = plm.mitigate(stats_counts, threshold = threshold)
         
@@ -170,10 +162,7 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
             for pos, qubit in enumerate(measured_qubits):
                 extend_bitstring[qubit] = bitstring[pos]
             extend_status_counts[''.join(extend_bitstring)] = count
-        
-        # if mask_bitstring is not None:
-        #     print(extend_status_counts[mask_bitstring])
-        
+                    
         return extend_status_counts
         
         

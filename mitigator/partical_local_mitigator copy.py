@@ -28,8 +28,6 @@ import time
 from typing import List, Optional, Tuple
 from utils import to_bitstring
 
-# 改成支持只测量一部分的
-
 def kron_basis(arr1, arr2, offest):
     grid = np.meshgrid(arr2, arr1)
     return grid[1].ravel() << offest | grid[0].ravel()
@@ -77,7 +75,6 @@ class ParticalLocalMitigator():
                 ]
                 if len(qubits) == 0:
                     break
-            now_group.sort()
             groups.append(now_group)
             
         return groups
@@ -144,26 +141,6 @@ class ParticalLocalMitigator():
             
     # , group2invM = None
     def mitigate(self, stats_counts: dict, threshold: float = None, circuit: QuantumCircuit = None, mask_bitstring = None):
-        # if circuit is not None:
-        #     measured_qubits = tuple([
-        #         instruction.qubits[0].index
-        #         for instruction in circuit
-        #         if instruction.operation.name == 'measure'
-        #     ])
-        # elif mask_bitstring is not None:
-        #     measured_qubits = tuple([
-        #         qubit
-        #         for qubit in range(n_qubits)
-        #         if mask_bitstring[qubit] != '2'
-        #     ])
-        # else:
-        #     measured_qubits = tuple(range(n_qubits))
-        # if group_basis[0] == 2:  # 对应的就是没有测量的
-        #     assert len(group_basis) == 1
-        #     group_mitigated_vec = np.array([1])
-        #     group_basis = np.arange(2**group_size)
-        # else:
-        
         '''假设group之间没有重叠的qubit'''
         n_qubits = self.n_qubits
         
@@ -181,7 +158,7 @@ class ParticalLocalMitigator():
         rm_prob = defaultdict(float)
         for basis, count in stats_counts.items():
             basis = [int(c) for c in basis]
-
+            
             now_basis = None  #basis_1q[basis[0]]
             now_values = None
             
@@ -192,13 +169,11 @@ class ParticalLocalMitigator():
                 
                 # group_basis = [basis[qubit] for qubit in group]
                 group_basis = basis[pointer: pointer + group_size]
-
                 pointer += group_size
                 
-
                 group_mitigated_vec = invM[:,list2int(group_basis)]
                 group_basis = np.arange(2**group_size)
-                    
+                
                 if now_basis is None:
                     next_basis = group_basis
                     next_values = group_mitigated_vec * count
@@ -206,7 +181,6 @@ class ParticalLocalMitigator():
                     next_basis = kron_basis(now_basis, group_basis, group_size)
                     next_values = np.kron(now_values, group_mitigated_vec)
                 
-                # TODO: 还没有在这份代码里面测试过
                 # filter = np.logical_or(next_values > threshold, next_values < -threshold)
                 # now_basis = next_basis[filter]
                 # now_values = next_values[filter]
