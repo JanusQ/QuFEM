@@ -175,10 +175,3 @@ class MeasurementAwareMitigator(ParticalLocalMitigator):
         #     print(extend_status_counts[mask_bitstring])
         
         return extend_status_counts
-        
-        
-        
-        
-        
-        
-        
