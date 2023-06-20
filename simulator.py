@@ -136,7 +136,31 @@ class NonLocalSimulator(Simulator):
         #     return error_results[0]
         # else:
         return error_results
+    
+    
+    
+    def execute_with_measure(self, circuit: List[QuantumCircuit], n_samples: int = 10000, bitstings = None):
+        M = self.M
+        
+        noise_free_results = Simulator.execute(self, circuit, n_samples)
 
+        error_results = []
+        
+        for bitstring, noise_free_result in zip(bitstings, noise_free_results):
+            error_result = defaultdict(int)
+            bitstring = bitstring.replace('2', '0')
+            for _, count in noise_free_result.items():
+                transfer_prob = M[:, int(bitstring, base=2)]
+                error_bitstrings = random.choices(
+                    self.all_bitstrings, weights=transfer_prob, k=count)
+                for error_bitstring in error_bitstrings:
+                    error_result[error_bitstring] += 1
+            error_results.append(dict(error_result))
+
+        # if not isinstance(circuit, list):
+        #     return error_results[0]
+        # else:
+        return error_results
 
 # class PartialLocalSimulator(Simulator):
 #     '''几个比特一个M'''
