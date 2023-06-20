@@ -82,7 +82,7 @@ class LocalMitigator():
         return self.M_per_qubits
         
         
-    def mitigate(self, stats_counts: dict, threshold=None):
+    def mitigate(self, stats_counts: dict, threshold=None, mask_bitstring = None): # TODO: 以后加入任意比特都可以的代码
         meas_mats_inv = self.M_per_qubits_inverse
         
         n_qubits = len(list(stats_counts.keys())[0])

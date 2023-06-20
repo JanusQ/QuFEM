@@ -34,7 +34,7 @@ from pgmpy.inference import VariableElimination
 # '''基于MultiStageMitigator改来的，考虑了测量的影响'''
 '''基于ParticalLocalMitigator改来的，考虑了测量的影响'''
 
-class MeasurementAwareMitigator(ParticalLocalMitigator):
+class BayesianMitigator(ParticalLocalMitigator):
     def __init__(self, n_qubits):
         self.n_qubits = n_qubits
 

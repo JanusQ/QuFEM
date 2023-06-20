@@ -3,17 +3,19 @@ import copy
 import pickle
 from benchmark import ghz
 from correlation_analysis import PdBasedProtocolResults, construct_bayesian_network
-from mitigator.measurement_aware_mitigator import MeasurementAwareMitigator
-from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from simulator import LocalSimulator, MeasurementAwareNonLocalSimulator, NonLocalSimulator, Simulator
 from qiskit.visualization import plot_histogram
 from config import fig_path, join
 import os
 import numpy as np
+
+from qiskit.quantum_info import hellinger_fidelity
+
+from mitigator.measurement_aware_mitigator import BayesianMitigator
+from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from mitigator.protocol_circuits import EnumeratedProtocol, MeasuremtAwareEnumeratedProtocol
 from mitigator.local_mitigator import LocalMitigator
 from mitigator.nonlocal_mitigator import NonLocalMitigator
-from qiskit.quantum_info import hellinger_fidelity
 
 def eval_plm(plm: ParticalLocalMitigator, protocol_results):
         mitigated_protocol_results = {
@@ -22,6 +24,7 @@ def eval_plm(plm: ParticalLocalMitigator, protocol_results):
                 for measured_bitstring, value in plm.mitigate(status_count, mask_bitstring = real_bitstring).items()  # 可能要乘以一个大的数字防止精度降低
             }
             for real_bitstring, status_count in protocol_results.items()
+            if '2' not in real_bitstring
         }
   
         n_success = 0
@@ -31,63 +34,83 @@ def eval_plm(plm: ParticalLocalMitigator, protocol_results):
             n_success += status_count[real_bitstring]
             
         # print(n_success/n_total)
-        return n_success/n_total, mitigated_protocol_results
+        return n_success/n_total  #, mitigated_protocol_results
     
-for i in range(2, 6): #range(2, 12):
-    print('\n\n\n\n')
-    simulator = MeasurementAwareNonLocalSimulator(i, MeasurementAwareNonLocalSimulator.gen_random_M(i))
-    NonLocalSimulator
-    bitstings, protocol_circuits = MeasuremtAwareEnumeratedProtocol(i).gen_circuits()
-    protocol_results = {
-        bitsting: status_count
-        for bitsting, status_count in zip(bitstings, simulator.execute(protocol_circuits, n_samples = 1000,))
-    }
+for n_qubits in range(2, 6): #range(2, 12):
+    print('n_qubits =', n_qubits)
     
-    # bitstring_dataset, protocol_results_dataset, cor, uncertainty = get_min_bitstring(n_qubits = i)
+    simulator_path = f'./temp/simulator_{n_qubits}.pkl'
+    # simulator = MeasurementAwareNonLocalSimulator(n_qubits, MeasurementAwareNonLocalSimulator.gen_random_M(n_qubits))
+    # with open(simulator_path, 'wb') as file:
+    #     pickle.dump(simulator, file)
+        
+    with open(simulator_path, 'rb') as file:
+        simulator: MeasurementAwareNonLocalSimulator = pickle.load(file)
+    # NonLocalSimulator
     
-    print(len(bitstings), 3**i)
+    protocol_path = f'./temp/protocol_{n_qubits}.pkl'
     
-    mitigator_2 = MeasurementAwareMitigator(i)
-    mitigator_10 = MeasurementAwareMitigator(i)
+    # bitstings, protocol_circuits = MeasuremtAwareEnumeratedProtocol(n_qubits).gen_circuits()
+    # protocol_results = {
+    #     bitsting: status_count
+    #     for bitsting, status_count in zip(bitstings, simulator.execute(protocol_circuits, n_samples = 10000,))
+    # }
+    # with open(protocol_path, 'wb') as file:
+    #     pickle.dump(protocol_results, file)
+        
+    with open(protocol_path, 'rb') as file:
+        protocol_results: dict = pickle.load(file)
+        
+    lm = LocalMitigator(n_qubits)
+    lm.characterize_M(protocol_results)
+
+    nlm = NonLocalMitigator(n_qubits)
+    nlm.characterize_M(protocol_results)
+    
+    # mitigator_2 = BayesianMitigator(n_qubits)
+    mitigator_10 = BayesianMitigator(n_qubits)
     # groups_2 = mitigator_2.random_group(group_size = 2)
     
-    _qubit = [q for q in range(i)]
-    for j in simulator.sub_groups:
-        for k in j:
-            _qubit.remove(k)
+    # _qubit = [q for q in range(n_qubits)]
+    # for j in simulator.sub_groups:
+    #     for k in j:
+    #         _qubit.remove(k)
             
-    groups_2 = simulator.sub_groups + [_qubit]
-    groups_10 = mitigator_10.random_group(group_size = 10)
-    mitigator_2.characterize_M(protocol_results, groups_2)
+    # groups_2 = simulator.sub_groups + [_qubit]
+    # mitigator_2.characterize_M(protocol_results, groups_2)
+    
+    # groups_10 = mitigator_10.random_group(group_size = 10)
+    groups_10 = [list(range(n_qubits))]
     mitigator_10.characterize_M(protocol_results, groups_10)
     
-    circuit = ghz(i)
+    circuit = ghz(n_qubits)
     result = simulator.execute(circuit, n_samples = 1000)[0]
     
-    fixed_status_counts_2 = mitigator_2.mitigate(result, threshold = 0.1 )
+    # bitstings, protocol_circuits = EnumeratedProtocol(n_qubits).gen_circuits()
+    # protocol_results = {
+    #     bitsting: status_count
+    #     for bitsting, status_count in zip(bitstings, simulator.execute(protocol_circuits, n_samples = 10000))
+    # }
+
+    
+    # fixed_status_counts_2 = mitigator_2.mitigate(result, threshold = 0.1 )
     fixed_status_counts_10 = mitigator_10.mitigate(result, threshold = 0.1 )
-    # print(result)
-    # print(fixed_status_counts)
-    # print(result['0'*i], fixed_status_counts['0'*i], result['1'*i], fixed_status_counts['1'*i])
-    print(len(bitstings), 3**i)
-    
-    bitstings, protocol_circuits = EnumeratedProtocol(i).gen_circuits()
-    protocol_results = {
-        bitsting: status_count
-        for bitsting, status_count in zip(bitstings, simulator.execute(protocol_circuits, n_samples = 1000))
-    }
-    lm = LocalMitigator(i)
-    lm.characterize_M(protocol_results)
     result_l = lm.mitigate(result, threshold = 1e-5 * 1000)
-    # print(result_l['0'*i], result_l['1'*i])
-    
-    nlm = NonLocalMitigator(i)
-    nlm.characterize_M(protocol_results)
     result_nl = nlm.mitigate(result)
     
-    groud_truth = {'0'*i: 0.5, '1'*i: 0.5}
-    print('minimize_2:', hellinger_fidelity(groud_truth, fixed_status_counts_2))
-    print('minimize_10:', hellinger_fidelity(groud_truth, fixed_status_counts_10))
-    print('local:', hellinger_fidelity(groud_truth, result_l))
-    print('non-local:', hellinger_fidelity(groud_truth, result_nl))
+    # groud_truth = {'0'*n_qubits: 0.5, '1'*n_qubits: 0.5}
+    # print('ghz fidelity:')
+    # print('minimize_2:', hellinger_fidelity(groud_truth, fixed_status_counts_2))
+    # print('minimize_10:', hellinger_fidelity(groud_truth, fixed_status_counts_10))
+    # print('local:', hellinger_fidelity(groud_truth, result_l))
+    # print('non-local:', hellinger_fidelity(groud_truth, result_nl))
+    
+    print('eval_plm:')
+    # print('minimize_2:', eval_plm(mitigator_2, protocol_results))
+    print('minimize_10:', eval_plm(mitigator_10, protocol_results))
+    print('local:', eval_plm(lm, protocol_results))
+    print('non-local:', eval_plm(nlm, protocol_results))
+    print()
+    
+    
 print('finish')

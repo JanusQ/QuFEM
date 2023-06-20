@@ -53,7 +53,7 @@ class ParticalLocalMitigator():
             }
             
             self.groups = []
-            self.inner_qubit_map = [] 
+            self.inner_qubit_map = [] # 内部的顺序->外部的顺序
             for group in group2M:
                 self.inner_qubit_map += list(group)  # 假设已经sort过了
                 self.groups.append(group)
@@ -143,27 +143,7 @@ class ParticalLocalMitigator():
     
             
     # , group2invM = None
-    def mitigate(self, stats_counts: dict, threshold: float = None, circuit: QuantumCircuit = None, mask_bitstring = None):
-        # if circuit is not None:
-        #     measured_qubits = tuple([
-        #         instruction.qubits[0].index
-        #         for instruction in circuit
-        #         if instruction.operation.name == 'measure'
-        #     ])
-        # elif mask_bitstring is not None:
-        #     measured_qubits = tuple([
-        #         qubit
-        #         for qubit in range(n_qubits)
-        #         if mask_bitstring[qubit] != '2'
-        #     ])
-        # else:
-        #     measured_qubits = tuple(range(n_qubits))
-        # if group_basis[0] == 2:  # 对应的就是没有测量的
-        #     assert len(group_basis) == 1
-        #     group_mitigated_vec = np.array([1])
-        #     group_basis = np.arange(2**group_size)
-        # else:
-        
+    def mitigate(self, stats_counts: dict, threshold: float = None, circuit: QuantumCircuit = None, mask_bitstring = None):        
         '''假设group之间没有重叠的qubit'''
         n_qubits = self.n_qubits
         
@@ -233,31 +213,6 @@ class ParticalLocalMitigator():
             for bitstring, prob in rm_prob.items()
         }
         rm_prob = self.permute(rm_prob, self.inner_qubit_map_inv)
-
-        
-        
-        # 实际的qubit->按照group之后的顺序
-        # qubit_map = defaultdict(list)  # 现在一个会对应张成后的多个了
-        # pointer = 0
-        # for group in groups:
-        #     for i, qubit in enumerate(group):
-        #         qubit_map[qubit] = pointer + i 
-        #     pointer += len(group)
-            
-        # inv_qubit_map = {
-        #     l_qubit: qubit
-        #     for qubit, l_qubit in qubit_map.items()
-        # }
-        
-        # new_rm_prob = {}
-        # for basis, value in rm_prob.items():
-        #     lbasis = 0
-        #     for qubit in range(n_qubits):
-        #         lbasis |= (basis & 1) << inv_qubit_map[qubit]
-        #         basis = basis >> 1
-
-        #     new_rm_prob[lbasis] = value
-        # rm_prob = new_rm_prob
 
         return rm_prob
         
