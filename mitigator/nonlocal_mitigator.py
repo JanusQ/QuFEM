@@ -51,16 +51,18 @@ class NonLocalMitigator():
                 self.M[measure_bitstring][real_bitstring] += count / total_count
         
         self.invM = np.linalg.inv(self.M)
-            
+        print('non-local')
+        print(np.round(self.M, 3))
+        
         return self.M
         
-    def mitigate(self, stats_counts: dict):
+    def mitigate(self, stats_counts: dict, mask_bitstring = None):
         '''用纯数学的方法'''
         # total_count = sum(stats_counts.values())
         error_count_vec = np.zeros(2 ** self.n_qubits)
         for basis, count in stats_counts.items():
             error_count_vec[int(basis, base=2)] = count
-            
+        
         rm_prob = {}
         rm_count_vec = self.invM @ error_count_vec
         rm_count_vec[rm_count_vec < 0] = 0

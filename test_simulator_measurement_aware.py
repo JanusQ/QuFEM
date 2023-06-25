@@ -9,7 +9,7 @@ from mitigator.local_mitigator import LocalMitigator
 from mitigator.nonlocal_mitigator import NonLocalMitigator
 from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from mitigator.multi_stage_mitigator import MultiStageMitigator
-from mitigator.measurement_aware_mitigator import MeasurementAwareMitigator
+from mitigator.measurement_aware_mitigator import BayesianMitigator
 
 import numpy as np
 from utils import all_bitstrings
@@ -61,7 +61,7 @@ result = simulator.execute(circuit, n_samples)[0]  # 返回默认都是一个数
 # plot_histogram(error_result, filename = join(fig_path, 'ls_ghz'))
 noise_free_result = noise_free_simulator.execute(circuit)[0]
 
-# mam = MeasurementAwareMitigator(n_qubits)
+# mam = BayesianMitigator(n_qubits)
 # groups = mam.random_group(2)
 # mam.characterize_M(protocol_results, groups)
 # result_mam = mam.mitigate(result, circuit, threshold = threshold * n_samples)
@@ -102,7 +102,7 @@ fidelity_mamlms = []
 score_mlms = []
 for i in range(10):
     mamlm = MultiStageMitigator(n_qubits, n_stages = 5)
-    score = mamlm.characterize_M(protocol_results, group_size = 2, BasisMitigator=MeasurementAwareMitigator)
+    score = mamlm.characterize_M(protocol_results, group_size = 2, BasisMitigator=BayesianMitigator)
     result_mam = mamlm.mitigate(result, threshold = threshold * n_samples)
     
     fidelity_mamlms.append(hellinger_fidelity(result_mam, noise_free_result))

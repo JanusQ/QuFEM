@@ -107,8 +107,9 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
     network_edges = []
     
     for qubit in range(n_qubits):
-        # 还有比特的的set没有啥用
-        cpds.append(TabularCPD(f"{qubit}_set", 3, [[0.33], [0.33], [0.33]],))
+        # 还有比特的的set, 基本上不会影响到实际生成的值
+        cpds.append(TabularCPD(f"{qubit}_set", 3, [[1/3]] * 3,))
+        # cpds.append(TabularCPD(f"{qubit}_set", 3, [[0.20], [0.20], [0.60]],))
         
         # 自己 + 其他pmi大的 TODO: 需要剪枝，用pmi
         # related_qubits = list(range(n_qubits))
@@ -117,6 +118,30 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
             network_edges.append((f'{related_qubit}_set',f'{qubit}_read'))
 
         data = np.zeros(shape=(3, 3**len(related_qubits)))
+
+        for set_types in itertools.product(*[(0, 1, 2)]*len(related_qubits)):
+            colum_index = sum([set_type * (3**(len(related_qubits) - qubit - 1))
+                              for qubit, set_type in enumerate(set_types)])
+            
+            # 替换上面的
+            filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
+            
+            if len(filter_df) == 0:
+                print('Wanrning')
+            
+            # 这里面要不要改成int
+            for read_type in (0, 1, 2):  # 对应1,2,3的操作
+                data[read_type][colum_index] = filter_df[filter_df[f'{qubit}_read'] == str(
+                    read_type)]['count'].sum()
+                # print(elm)
+
+            if np.sum(data[:, colum_index]) == 0:
+                # 本来不可能出现的条件概率
+                data[2, colum_index] = 1
+                raise Exception('忘了这里是干啥的了，好像是算不出概率')
+            else:
+                data[:, colum_index] /= np.sum(data[:, colum_index])
+
         # 生成如下的格式的cpd
         # +-----------+----------+----------+-----+----------+----------+----------+
         # | 0_set     | 0_set(0) | 0_set(0) | ... | 0_set(2) | 0_set(2) | 0_set(2) |
@@ -130,42 +155,15 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
         # | 0_read(2) | 1.0      | 1.0      | ... | 0.0      | 0.0      | 0.0      |
         # +-----------+----------+----------+-----+----------+----------+----------+
 
-        for set_types in itertools.product(*[(0, 1, 2)]*len(related_qubits)):
-            colum_index = sum([set_type * (3**(len(related_qubits) - qubit - 1))
-                              for qubit, set_type in enumerate(set_types)])
-            # filter_df = df
-            # for set_type, other_qubit in zip(set_types, related_qubits):
-            #     filter_df = filter_df[filter_df[f'{other_qubit}_set'] == str(
-            #         set_type)]
-            
-            # 替换上面的
-            filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
-            
-            # if 2 in set_types:
-            #     print(filter_df)
-            if len(filter_df) == 0:
-                print('Wanrning')
-            
-            # 这里面要不要改成int
-            for read_type in (0, 1, 2):  # 对应1,2,3的操作
-                data[read_type][colum_index] = filter_df[filter_df[f'{qubit}_read'] == str(
-                    read_type)]['count'].sum()
-                # print(elm)
-
-            if np.sum(data[:, colum_index]) == 0:
-                # 本来不可能出现的条件概率
-                data[2, colum_index] = 1
-            else:
-                data[:, colum_index] /= np.sum(data[:, colum_index])
-
         # P(qubit_read | qubit_set, other qubit_set)
         qubit_cpd = TabularCPD(f"{qubit}_read", 3,
                                data,
                                evidence=[f"{related_qubit}_set" for related_qubit in related_qubits],
                                evidence_card=[3, ] * len(related_qubits),
                                )
+        
+        
         print(qubit_cpd)
-
         cpds.append(qubit_cpd)
 
     
