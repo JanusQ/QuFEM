@@ -187,9 +187,9 @@ class ParticalLocalMitigator():
                     next_values = np.kron(now_values, group_mitigated_vec)
                 
                 # TODO: 还没有在这份代码里面测试过
-                # filter = np.logical_or(next_values > threshold, next_values < -threshold)
-                # now_basis = next_basis[filter]
-                # now_values = next_values[filter]
+                filter = np.logical_or(next_values > threshold, next_values < -threshold)
+                now_basis = next_basis[filter]
+                now_values = next_values[filter]
 
                 now_basis = next_basis
                 now_values = next_values

@@ -83,7 +83,26 @@ class PdBasedProtocolResults():
             filter_df = filter_df[filter_df[f'{qubit}_set'] == str(value)]
         return filter_df
 
-def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubits):
+def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubits, groups):
+    '''这里已经开始考虑是否读取了'''
+    # columns = defaultdict(list)
+    # for real_bitstring, status_count in protocol_results.items():
+    #     for measure_bitstring, count in status_count.items():
+
+    #         for qubit in range(n_qubits):
+    #             columns[f'{qubit}_set'].append(real_bitstring[qubit]) # set的值 0, 1, 2 (没有set)
+    #             columns[f'{qubit}_read'].append(measure_bitstring[qubit]) # 读到的值 0, 1, 2 (不读)
+    #             # columns[f'{qubit}_measure'].append(real_bitstring[qubit] != '2') # 是否进行读取 0, 1
+    #         columns['count'].append(count)
+
+    # df = PdBasedProtocolResults(protocol_results).df
+    # print(df)
+
+    q2group = {}
+    for g in groups:
+        for q in g:
+            q2group[q] = g
+    
     cpds = []
     network_edges = []
     
@@ -93,8 +112,8 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
         # cpds.append(TabularCPD(f"{qubit}_set", 3, [[0.20], [0.20], [0.60]],))
         
         # 自己 + 其他pmi大的 TODO: 需要剪枝，用pmi
-        related_qubits = list(range(n_qubits))  # 这里似乎必须得是一个group的才比较合理
-        # related_qubits = [n_qubits]
+        # related_qubits = list(range(n_qubits))
+        related_qubits = q2group[qubit]
         for related_qubit in related_qubits:
             network_edges.append((f'{related_qubit}_set',f'{qubit}_read'))
 
@@ -108,7 +127,7 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
             filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
             
             if len(filter_df) == 0:
-                print('Wanrning\n\n\n')
+                print('Wanrning')
             
             # 这里面要不要改成int
             for read_type in (0, 1, 2):  # 对应1,2,3的操作

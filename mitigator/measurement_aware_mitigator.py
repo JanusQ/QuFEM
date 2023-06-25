@@ -40,7 +40,7 @@ class BayesianMitigator(ParticalLocalMitigator):
     
     def characterize_M(self, protocol_results, groups: List[List[int]]):
         protocol_results = PdBasedProtocolResults(protocol_results, self.n_qubits)
-        self.bayesian_network_model, self.bayesian_infer_model = construct_bayesian_network(protocol_results, self.n_qubits)
+        self.bayesian_network_model, self.bayesian_infer_model = construct_bayesian_network(protocol_results, self.n_qubits, groups)
         self.groups = [
             sorted(group)
             for group in groups
