@@ -16,7 +16,7 @@
 4. (7/15完成) 补充细节实验
 
 
-实现准备
+实验准备
 1. Quantum hardware
     1. 5, 28 qubits: IBM Quantum cloud platform
     2. 10, 18, and 138 qubits: Cloud platform of the Chinese Academy of Sciences
