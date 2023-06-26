@@ -3,7 +3,7 @@ import copy
 import pickle
 from benchmark import ghz
 from correlation_analysis import PdBasedProtocolResults, construct_bayesian_network
-from mitigator.measurement_aware_mitigator import MeasurementAwareMitigator
+from mitigator.measurement_aware_mitigator import BayesianMitigator
 from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from simulator import LocalSimulator, MeasurementAwareNonLocalSimulator, NonLocalSimulator, Simulator
 from qiskit.visualization import plot_histogram
@@ -38,12 +38,11 @@ for i in range(18, 19): #range(2, 12):
     with open('protocal_result_fix.pkl','rb') as f:
         protocal_result = pickle.load(f)
     
-    mitigator = MeasurementAwareMitigator(i)
+    mitigator = BayesianMitigator(i)
     groups = mitigator.random_group(group_size = 2)
-    mitigator.characterize_M(protocal_result ,groups)
+    mitigator.characterize_M(protocal_result, groups)
     
     score, mitigated_protocol_results = eval_plm(mitigator, protocal_result)
  
             
-   
 print('finish')
