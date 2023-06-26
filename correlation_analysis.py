@@ -163,7 +163,7 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
                                )
         
         
-        print(qubit_cpd)
+        # print(qubit_cpd)
         cpds.append(qubit_cpd)
 
     

@@ -62,12 +62,14 @@ class BayesianMitigator(ParticalLocalMitigator):
         for group in self.groups:
             group_measured_qubits = [qubit for qubit in group if qubit in measured_qubits]
             n_group_measured_qubits = len(group_measured_qubits)
+            if n_group_measured_qubits == 0:
+                continue
             M = np.zeros(shape = (2**n_group_measured_qubits, 2**n_group_measured_qubits))
             
             for bitstring in all_bitstrings(n_group_measured_qubits):
                 posterior_p = bayesian_infer_model.query([f'{qubit}_read' for qubit in group_measured_qubits],   # if qubit in measured_qubits
                     evidence={
-                        f'{qubit}_set': int(bitstring[group.index(qubit)]) if qubit in measured_qubits else 2
+                        f'{qubit}_set': int(bitstring[group_measured_qubits.index(qubit)]) if qubit in measured_qubits else 2
                         for qubit in group
                     }
                 )
@@ -81,8 +83,8 @@ class BayesianMitigator(ParticalLocalMitigator):
             remap_group = tuple([measured_qubits.index(qubit) for qubit in group_measured_qubits])
             group2M[remap_group] = M
 
-            print('Bayesian:')
-            print(np.round(M, 3))
+            # print('Bayesian:')
+            # print(np.round(M, 3))
         
         return ParticalLocalMitigator(n_measured_qubits, group2M)
             
