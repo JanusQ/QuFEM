@@ -124,3 +124,12 @@ def downsample(stats_count: dict, qubits: list):
         new_stats_count[new_bitstring] += count
     
     return new_stats_count
+
+def store(data):
+    import os
+    import pickle
+    cnt = 0                     
+    while os.path.exists(f'res_{cnt}.pkl'):
+        cnt += 1
+    with open(f'res_{cnt}.pkl','wb') as f:
+        pickle.dump(data, f)

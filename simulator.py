@@ -195,10 +195,41 @@ class MeasurementAwareNonLocalSimulator(Simulator):
 
         return local_M, sub_groups, sub_group_Ms
     
+    
+    def add_error(self, result, measured_qubits):
+        sub_groups, sub_group_Ms = self.sub_groups, self.sub_group_Ms
+        for sub_group, sub_group_M in zip(sub_groups, sub_group_Ms):
+            if any([qubit not in measured_qubits for qubit in sub_group]): continue
+            new_error_result = defaultdict(int)
+            for bitstring, count in result.items():
+                bitstring = list(bitstring)
+                
+                # 这里写的复杂了
+                transfer_prob = sub_group_M[:,int(''.join([bitstring[measured_qubits.index(qubit)] for qubit in sub_group]), base=2)]
+                error_bitstrings = random.choices(all_bitstrings(len(sub_group)), weights=transfer_prob, k=count)
+                
+                for error_bitstring in error_bitstrings:
+                    for index, qubit in enumerate(sub_group):
+                        bitstring[measured_qubits.index(qubit)] = error_bitstring[sub_group.index(qubit)]
+                    new_error_result[''.join(bitstring)] += 1
+            result = new_error_result
+
+        # 把没有测量的比特也标记为2放进去
+        new_result = {}
+        for bitstring, count in result.items():
+            new_bitstring = ''
+            for qubit in range(self.n_qubits):
+                if qubit in measured_qubits:
+                    new_bitstring = new_bitstring + bitstring[measured_qubits.index(qubit)]
+                else:
+                    new_bitstring = new_bitstring + '2'
+            new_result[new_bitstring] = count
+        return new_result
+                
     def execute(self, circuits: List[QuantumCircuit], n_samples: int = 10000):
         # 读取那些比特进行了读取
         local_error_results = self.local_simulator.execute(circuits, n_samples)
-        sub_groups, sub_group_Ms = self.sub_groups, self.sub_group_Ms
+        
         # 生成对应的读取矩阵
         
         if not isinstance(circuits, (list, set, tuple)):
@@ -213,35 +244,7 @@ class MeasurementAwareNonLocalSimulator(Simulator):
             ]
             # print(circuit)
             
-            for sub_group, sub_group_M in zip(sub_groups, sub_group_Ms):
-                if any([qubit not in measured_qubits for qubit in sub_group]): continue
-                new_error_result = defaultdict(int)
-                for bitstring, count in result.items():
-                    bitstring = list(bitstring)
-                    
-                    # 这里写的复杂了
-                    transfer_prob = sub_group_M[:,int(''.join([bitstring[measured_qubits.index(qubit)] for qubit in sub_group]), base=2)]
-                    error_bitstrings = random.choices(all_bitstrings(len(sub_group)), weights=transfer_prob, k=count)
-                    
-                    for error_bitstring in error_bitstrings:
-                        for index, qubit in enumerate(sub_group):
-                            bitstring[measured_qubits.index(qubit)] = error_bitstring[sub_group.index(qubit)]
-                        new_error_result[''.join(bitstring)] += 1
-                result = new_error_result
-
-            # 把没有测量的比特也标记为2放进去
-            new_result = {}
-            for bitstring, count in result.items():
-                new_bitstring = ''
-                for qubit in range(self.n_qubits):
-                    if qubit in measured_qubits:
-                        new_bitstring = new_bitstring + bitstring[measured_qubits.index(qubit)]
-                    else:
-                        new_bitstring = new_bitstring + '2'
-                new_result[new_bitstring] = count
-            result = new_result
-
-            new_error_results.append(dict(result))
+            new_error_results.append(dict(self.add_error(result)))
             
         return new_error_results
     

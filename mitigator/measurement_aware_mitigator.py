@@ -62,12 +62,14 @@ class BayesianMitigator(ParticalLocalMitigator):
         for group in self.groups:
             group_measured_qubits = [qubit for qubit in group if qubit in measured_qubits]
             n_group_measured_qubits = len(group_measured_qubits)
+            if n_group_measured_qubits == 0:
+                continue
             M = np.zeros(shape = (2**n_group_measured_qubits, 2**n_group_measured_qubits))
             
             for bitstring in all_bitstrings(n_group_measured_qubits):
                 posterior_p = bayesian_infer_model.query([f'{qubit}_read' for qubit in group_measured_qubits],   # if qubit in measured_qubits
                     evidence={
-                        f'{qubit}_set': int(bitstring[group.index(qubit)]) if qubit in measured_qubits else 2
+                        f'{qubit}_set': int(bitstring[group_measured_qubits.index(qubit)]) if qubit in measured_qubits else 2
                         for qubit in group
                     }
                 )
@@ -81,16 +83,18 @@ class BayesianMitigator(ParticalLocalMitigator):
             remap_group = tuple([measured_qubits.index(qubit) for qubit in group_measured_qubits])
             group2M[remap_group] = M
 
-            print('Bayesian:')
-            print(np.round(M, 3))
+            # print('Bayesian:')
+            # print(np.round(M, 3))
         
         return ParticalLocalMitigator(n_measured_qubits, group2M)
             
-    def mitigate(self, stats_counts: dict, circuit: QuantumCircuit = None, threshold: float = None, mask_bitstring: str = None):
+    def mitigate(self, stats_counts: dict, circuit: QuantumCircuit = None, threshold: float = None, mask_bitstring: str = None, measured_qubits: list = None):
         '''假设group之间没有重叠的qubit'''
         n_qubits = self.n_qubits
         
-        if circuit is not None:
+        if measured_qubits is not None:
+            measured_qubits = tuple(measured_qubits)
+        elif circuit is not None:
             measured_qubits =[
                 instruction.qubits[0].index
                 for instruction in circuit
@@ -113,6 +117,26 @@ class BayesianMitigator(ParticalLocalMitigator):
         stats_counts = downsample(stats_counts, measured_qubits)  # 剃掉不测量的比特
 
         mitigated_stats_counts = plm.mitigate(stats_counts, threshold = threshold)
+        
+        extend_status_counts = {}
+        for bitstring, count in mitigated_stats_counts.items():
+            extend_bitstring = ['2'] * self.n_qubits
+            for pos, qubit in enumerate(measured_qubits):
+                extend_bitstring[qubit] = bitstring[pos]
+            extend_status_counts[''.join(extend_bitstring)] = count
+
+        return extend_status_counts
+    
+
+    def add_error(self, stats_counts: dict, measured_qubits: list, threshold: float = None):
+        '''输入没有噪声的，反过来预测有噪声的情况'''
+        n_qubits = self.n_qubits
+        
+        plm: ParticalLocalMitigator = self.get_partical_local_mitigator(tuple(measured_qubits))
+        
+        stats_counts = downsample(stats_counts, measured_qubits)  # 剃掉不测量的比特
+
+        mitigated_stats_counts = plm.add_error(stats_counts, threshold = threshold)
         
         extend_status_counts = {}
         for bitstring, count in mitigated_stats_counts.items():

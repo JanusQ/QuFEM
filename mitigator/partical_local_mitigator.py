@@ -140,10 +140,15 @@ class ParticalLocalMitigator():
                 new_bitstring[now_pos] = bitstring[old_pos]
             permuted_stat_counts[''.join(new_bitstring)] = count
         return permuted_stat_counts
-    
-            
+
+
+    def add_error(self, stats_counts, threshold: float = None):
+        '''输入没有噪声的，反过来预测有噪声的情况'''
+        return self.mitigate(stats_counts, threshold, self.group2M)
+
     # , group2invM = None
-    def mitigate(self, stats_counts: dict, threshold: float = None, circuit: QuantumCircuit = None, mask_bitstring = None):        
+    def mitigate(self, stats_counts: dict, threshold: float = None, circuit: QuantumCircuit = None, mask_bitstring = None, group2invM = None):  
+        # print('mitigate')      
         '''假设group之间没有重叠的qubit'''
         n_qubits = self.n_qubits
         
@@ -151,7 +156,8 @@ class ParticalLocalMitigator():
         
         # stats_counts = dict(stats_counts)
         # if group2invM is None:
-        group2invM = self.group2invM
+        if group2invM is None:
+            group2invM = self.group2invM
         groups = self.groups
         
         if threshold is None:
@@ -191,8 +197,8 @@ class ParticalLocalMitigator():
                 now_basis = next_basis[filter]
                 now_values = next_values[filter]
 
-                now_basis = next_basis
-                now_values = next_values
+                # now_basis = next_basis
+                # now_values = next_values
 
             for basis, value in zip(now_basis, now_values):
                 rm_prob[basis] += value  # 这里的basis是按照group的顺序的
