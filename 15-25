@@ -1,0 +1,106 @@
+/home/olcus/readout/test/readout_error_mitigation/dataloader.py:72: RuntimeWarning: invalid value encountered in divide
+  cor = tmp / uncertainty
+qubits: 5, iter: 0, score: 0.9849776548901895, datasize: 20
+qubits: 5, iter: 1, score: 0.9764576288661512, datasize: 40
+qubits: 5, iter: 2, score: 0.9735364260918895, datasize: 60
+Wanrning
+Wanrning
+忘了这里是干啥的了，好像是算不出概率
+Wanrning
+Wanrning
+qubits: 6, iter: 0, score: 0.9681962354796189, datasize: 48
+qubits: 6, iter: 1, score: 0.9668072863285927, datasize: 72
+qubits: 6, iter: 2, score: 0.9680154783967038, datasize: 96
+qubits: 6, iter: 3, score: 0.9684233038486698, datasize: 120
+qubits: 7, iter: 0, score: 0.9767273804319643, datasize: 28
+qubits: 7, iter: 1, score: 0.9722014298294053, datasize: 56
+qubits: 7, iter: 2, score: 0.9710242007267441, datasize: 84
+qubits: 8, iter: 0, score: 0.9414012805374768, datasize: 32
+qubits: 8, iter: 1, score: 0.9437429056578063, datasize: 64
+qubits: 8, iter: 2, score: 0.9427798866752064, datasize: 96
+qubits: 8, iter: 3, score: 0.9407233605076029, datasize: 128
+qubits: 9, iter: 0, score: 0.9390622230373045, datasize: 36
+qubits: 9, iter: 1, score: 0.934736903141903, datasize: 72
+qubits: 9, iter: 2, score: 0.9365562084989616, datasize: 108
+qubits: 9, iter: 3, score: 0.9361016539588687, datasize: 144
+Wanrning
+忘了这里是干啥的了，好像是算不出概率
+Wanrning
+qubits: 10, iter: 0, score: 0.937534968219595, datasize: 80
+qubits: 10, iter: 1, score: 0.9387858736675421, datasize: 120
+qubits: 10, iter: 2, score: 0.9368684355086745, datasize: 160
+qubits: 10, iter: 3, score: 0.9379392766762225, datasize: 200
+qubits: 10, iter: 4, score: 0.9380451376588448, datasize: 240
+Wanrning
+忘了这里是干啥的了，好像是算不出概率
+Wanrning
+qubits: 11, iter: 0, score: 0.8839151887469611, datasize: 88
+qubits: 11, iter: 1, score: 0.8864781820269592, datasize: 132
+qubits: 11, iter: 2, score: 0.8889718615157802, datasize: 176
+qubits: 11, iter: 3, score: 0.8901106507063594, datasize: 220
+qubits: 11, iter: 4, score: 0.8943724409439238, datasize: 264
+qubits: 11, iter: 5, score: 0.8956209624267057, datasize: 308
+qubits: 11, iter: 6, score: 0.8982134919799653, datasize: 352
+qubits: 11, iter: 7, score: 0.8988526030535255, datasize: 396
+qubits: 11, iter: 8, score: 0.8991483466518806, datasize: 440
+qubits: 12, iter: 0, score: 0.89611695310889, datasize: 48
+qubits: 12, iter: 1, score: 0.8996761464373052, datasize: 96
+qubits: 12, iter: 2, score: 0.8981813171773525, datasize: 144
+qubits: 12, iter: 3, score: 0.8976223926797899, datasize: 192
+qubits: 13, iter: 0, score: 0.8804995832512006, datasize: 52
+qubits: 13, iter: 1, score: 0.8859821694957077, datasize: 104
+qubits: 13, iter: 2, score: 0.8896318033000774, datasize: 156
+qubits: 13, iter: 3, score: 0.8917684146759915, datasize: 208
+qubits: 13, iter: 4, score: 0.8901773328246323, datasize: 260
+qubits: 13, iter: 5, score: 0.8882292978570648, datasize: 312
+qubits: 14, iter: 0, score: 0.8626922779482877, datasize: 56
+qubits: 14, iter: 1, score: 0.8730226076488, datasize: 112
+qubits: 14, iter: 2, score: 0.8742063725417569, datasize: 168
+qubits: 14, iter: 3, score: 0.8731747188276229, datasize: 224
+qubits: 14, iter: 4, score: 0.8701235179773776, datasize: 280
+/home/olcus/readout/test/readout_error_mitigation/dataloader.py:72: RuntimeWarning: invalid value encountered in divide
+  cor = tmp / uncertainty
+qubits: 15, iter: 0, score: 0.819426571254104, datasize: 60
+qubits: 15, iter: 1, score: 0.8155753826903019, datasize: 120
+qubits: 15, iter: 2, score: 0.8203514537778808, datasize: 180
+qubits: 15, iter: 3, score: 0.825468710194971, datasize: 240
+qubits: 15, iter: 4, score: 0.8263005580705197, datasize: 300
+qubits: 16, iter: 0, score: 0.8344864105415629, datasize: 64
+qubits: 16, iter: 1, score: 0.8313179054053863, datasize: 128
+qubits: 16, iter: 2, score: 0.8264835286747787, datasize: 192
+qubits: 17, iter: 0, score: 0.7173098511799831, datasize: 68
+qubits: 17, iter: 1, score: 0.7035003798235121, datasize: 136
+qubits: 17, iter: 2, score: 0.7126972628423662, datasize: 204
+qubits: 17, iter: 3, score: 0.7149419904931965, datasize: 272
+qubits: 17, iter: 4, score: 0.7149460577240575, datasize: 340
+Wanrning
+忘了这里是干啥的了，好像是算不出概率
+Wanrning
+qubits: 18, iter: 0, score: 0.7507108954063818, datasize: 144
+qubits: 18, iter: 1, score: 0.7592088215344803, datasize: 216
+qubits: 18, iter: 2, score: 0.7607721907908886, datasize: 288
+qubits: 18, iter: 3, score: 0.7636907238951873, datasize: 360
+qubits: 18, iter: 4, score: 0.7608383548005024, datasize: 432
+qubits: 18, iter: 5, score: 0.7576986273310085, datasize: 504
+qubits: 19, iter: 0, score: 0.7603475873817267, datasize: 76
+qubits: 19, iter: 1, score: 0.7526861291354137, datasize: 152
+qubits: 19, iter: 2, score: 0.7513667099773182, datasize: 228
+qubits: 20, iter: 0, score: 0.7120644744552147, datasize: 80
+qubits: 20, iter: 1, score: 0.7016525946476265, datasize: 160
+qubits: 20, iter: 2, score: 0.7070735778429038, datasize: 240
+qubits: 20, iter: 3, score: 0.7009587022975989, datasize: 320
+qubits: 21, iter: 0, score: 0.7113380271001358, datasize: 84
+qubits: 21, iter: 1, score: 0.7232107505052093, datasize: 168
+qubits: 21, iter: 2, score: 0.7192669188337341, datasize: 252
+qubits: 21, iter: 3, score: 0.7230748585840888, datasize: 336
+qubits: 21, iter: 4, score: 0.7258622014746464, datasize: 420
+qubits: 21, iter: 5, score: 0.7267739068611981, datasize: 504
+qubits: 22, iter: 0, score: 0.5865459260178746, datasize: 88
+qubits: 22, iter: 1, score: 0.6075959923006167, datasize: 176
+qubits: 22, iter: 2, score: 0.6047588295148404, datasize: 264
+qubits: 22, iter: 3, score: 0.6143137683939432, datasize: 352
+qubits: 22, iter: 4, score: 0.6109432847104683, datasize: 440
+qubits: 23, iter: 0, score: 0.606651251653533, datasize: 92
+qubits: 23, iter: 1, score: 0.6286275699330609, datasize: 184
+qubits: 23, iter: 2, score: 0.6320103618897588, datasize: 276
+qubits: 23, iter: 3, score: 0.6280998940471407, datasize: 368

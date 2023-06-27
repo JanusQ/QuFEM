@@ -191,8 +191,8 @@ class ParticalLocalMitigator():
                 now_basis = next_basis[filter]
                 now_values = next_values[filter]
 
-                now_basis = next_basis
-                now_values = next_values
+                # now_basis = next_basis
+                # now_values = next_values
 
             for basis, value in zip(now_basis, now_values):
                 rm_prob[basis] += value  # 这里的basis是按照group的顺序的

@@ -1,3 +1,4 @@
+import copy
 from functools import lru_cache
 import ray
 import threading
@@ -125,11 +126,16 @@ def downsample(stats_count: dict, qubits: list):
     
     return new_stats_count
 
-def store(data):
+def store(data, filename):
     import os
     import pickle
     cnt = 0                     
-    while os.path.exists(f'res_{cnt}.pkl'):
+    while os.path.exists(f'{filename}_{cnt}.pkl'):
         cnt += 1
-    with open(f'res_{cnt}.pkl','wb') as f:
+    with open(f'{filename}_{cnt}.pkl','wb') as f:
         pickle.dump(data, f)
+        
+def load(filename):
+    import pickle
+    with open(filename, 'rb')as f:
+        return pickle.load(f) 

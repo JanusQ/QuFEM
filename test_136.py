@@ -20,6 +20,17 @@ from utils import eval_plm
 
 
 
+
+def get_iter_protocol_results(cnt, bitstring_dataset):
+    iter_res = {}
+    i = 0
+    for k, v in all_res.items():
+        if k not in bitstring_dataset:
+            i+=1
+            iter_res[k] = v
+            bitstring_dataset.append(k)
+        if i == cnt:
+            return iter_res
     
 def get_min_bitstring(n_qubits, n_samples = 1000, C = 0.005, hyper = 4, groups = None):
     # n_qubits = 8
@@ -88,13 +99,14 @@ def get_min_bitstring(n_qubits, n_samples = 1000, C = 0.005, hyper = 4, groups =
 
 
     
+    
 
 n_qubits = 136
 
 with open(f'protocal_result_{n_qubits}bit.pkl','rb') as f:
     all_res = pickle.load(f)
 
-bitstring_dataset, protocol_results_dataset, cor, uncertainty, iter_score = get_min_bitstring(n_qubits, hyper =1 , C = 1e-8)
+bitstring_dataset, protocol_results_dataset, cor, uncertainty, iter_score = get_min_bitstring(n_qubits, C = 1e-8)
 print('iter_count:', len(iter_score))
 print('score:', iter_score)
 print('dataset_size:', len(bitstring_dataset))

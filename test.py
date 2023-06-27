@@ -16,26 +16,8 @@ from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from mitigator.protocol_circuits import EnumeratedProtocol, MeasuremtAwareEnumeratedProtocol
 from mitigator.local_mitigator import LocalMitigator
 from mitigator.nonlocal_mitigator import NonLocalMitigator
+from utils import eval_plm
 
-def eval_plm(plm: ParticalLocalMitigator, protocol_results):
-        mitigated_protocol_results = {
-            real_bitstring: {
-                measured_bitstring: value * 1000  # 防止精度丢失
-                for measured_bitstring, value in plm.mitigate(status_count, mask_bitstring = real_bitstring).items()  # 可能要乘以一个大的数字防止精度降低
-            }
-            for real_bitstring, status_count in protocol_results.items()
-            if '2' not in real_bitstring
-        }
-  
-        n_success = 0
-        n_total = 0
-        for real_bitstring, status_count in mitigated_protocol_results.items():
-            n_total += sum(status_count.values())
-            n_success += status_count[real_bitstring]
-            
-        # print(n_success/n_total)
-        return n_success/n_total  #, mitigated_protocol_results
-    
 for n_qubits in range(2, 6): #range(2, 12):
     print('n_qubits =', n_qubits)
     

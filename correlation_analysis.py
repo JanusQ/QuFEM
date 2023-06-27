@@ -1,4 +1,6 @@
 '''分析错误之间的相关性'''
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import copy
 import pandas as pd
 import numpy as np
 import networkx as nx
@@ -82,7 +84,56 @@ class PdBasedProtocolResults():
         for qubit, value in qubit_set_values:
             filter_df = filter_df[filter_df[f'{qubit}_set'] == str(value)]
         return filter_df
+def construct_cpd(qubit, related_qubits, protocol_results):
 
+    data = np.zeros(shape=(3, 3**len(related_qubits)))
+
+    for set_types in itertools.product(*[(0, 1, 2)]*len(related_qubits)):
+        colum_index = sum([set_type * (3**(len(related_qubits) - qubit - 1))
+                            for qubit, set_type in enumerate(set_types)])
+        
+        # 替换上面的
+        filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
+        
+        if len(filter_df) == 0:
+            print('Wanrning')
+        
+        # 这里面要不要改成int
+        for read_type in (0, 1, 2):  # 对应1,2,3的操作
+            data[read_type][colum_index] = filter_df[filter_df[f'{qubit}_read'] == str(
+                read_type)]['count'].sum()
+            # print(elm)
+
+        if np.sum(data[:, colum_index]) == 0:
+            # 本来不可能出现的条件概率
+            data[2, colum_index] = 1
+            raise Exception('忘了这里是干啥的了，好像是算不出概率')
+        else:
+            data[:, colum_index] /= np.sum(data[:, colum_index])
+
+    # 生成如下的格式的cpd
+    # +-----------+----------+----------+-----+----------+----------+----------+
+    # | 0_set     | 0_set(0) | 0_set(0) | ... | 0_set(2) | 0_set(2) | 0_set(2) |
+    # +-----------+----------+----------+-----+----------+----------+----------+
+    # | 1_set     | 1_set(0) | 1_set(1) | ... | 1_set(0) | 1_set(1) | 1_set(2) |
+    # +-----------+----------+----------+-----+----------+----------+----------+
+    # | 0_read(0) | 0.0      | 0.0      | ... | 942.0    | 41.0     | 0.0      |
+    # +-----------+----------+----------+-----+----------+----------+----------+
+    # | 0_read(1) | 0.0      | 0.0      | ... | 58.0     | 959.0    | 0.0      |
+    # +-----------+----------+----------+-----+----------+----------+----------+
+    # | 0_read(2) | 1.0      | 1.0      | ... | 0.0      | 0.0      | 0.0      |
+    # +-----------+----------+----------+-----+----------+----------+----------+
+
+    # P(qubit_read | qubit_set, other qubit_set)
+    qubit_cpd = TabularCPD(f"{qubit}_read", 3,
+                            data,
+                            evidence=[f"{related_qubit}_set" for related_qubit in related_qubits],
+                            evidence_card=[3, ] * len(related_qubits),
+                            )
+    
+    
+    # print(qubit_cpd)
+    return qubit_cpd
 def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubits, groups):
     '''这里已经开始考虑是否读取了'''
     # columns = defaultdict(list)
@@ -105,7 +156,9 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
     
     cpds = []
     network_edges = []
+    executor = ProcessPoolExecutor()
     
+    futures = []
     for qubit in range(n_qubits):
         # 还有比特的的set, 基本上不会影响到实际生成的值
         cpds.append(TabularCPD(f"{qubit}_set", 3, [[1/3]] * 3,))
@@ -117,55 +170,12 @@ def construct_bayesian_network(protocol_results: PdBasedProtocolResults, n_qubit
         for related_qubit in related_qubits:
             network_edges.append((f'{related_qubit}_set',f'{qubit}_read'))
 
-        data = np.zeros(shape=(3, 3**len(related_qubits)))
-
-        for set_types in itertools.product(*[(0, 1, 2)]*len(related_qubits)):
-            colum_index = sum([set_type * (3**(len(related_qubits) - qubit - 1))
-                              for qubit, set_type in enumerate(set_types)])
-            
-            # 替换上面的
-            filter_df = protocol_results[[(related_qubit, set_type) for set_type, related_qubit in zip(set_types, related_qubits)]]
-            
-            if len(filter_df) == 0:
-                print('Wanrning')
-            
-            # 这里面要不要改成int
-            for read_type in (0, 1, 2):  # 对应1,2,3的操作
-                data[read_type][colum_index] = filter_df[filter_df[f'{qubit}_read'] == str(
-                    read_type)]['count'].sum()
-                # print(elm)
-
-            if np.sum(data[:, colum_index]) == 0:
-                # 本来不可能出现的条件概率
-                data[2, colum_index] = 1
-                raise Exception('忘了这里是干啥的了，好像是算不出概率')
-            else:
-                data[:, colum_index] /= np.sum(data[:, colum_index])
-
-        # 生成如下的格式的cpd
-        # +-----------+----------+----------+-----+----------+----------+----------+
-        # | 0_set     | 0_set(0) | 0_set(0) | ... | 0_set(2) | 0_set(2) | 0_set(2) |
-        # +-----------+----------+----------+-----+----------+----------+----------+
-        # | 1_set     | 1_set(0) | 1_set(1) | ... | 1_set(0) | 1_set(1) | 1_set(2) |
-        # +-----------+----------+----------+-----+----------+----------+----------+
-        # | 0_read(0) | 0.0      | 0.0      | ... | 942.0    | 41.0     | 0.0      |
-        # +-----------+----------+----------+-----+----------+----------+----------+
-        # | 0_read(1) | 0.0      | 0.0      | ... | 58.0     | 959.0    | 0.0      |
-        # +-----------+----------+----------+-----+----------+----------+----------+
-        # | 0_read(2) | 1.0      | 1.0      | ... | 0.0      | 0.0      | 0.0      |
-        # +-----------+----------+----------+-----+----------+----------+----------+
-
-        # P(qubit_read | qubit_set, other qubit_set)
-        qubit_cpd = TabularCPD(f"{qubit}_read", 3,
-                               data,
-                               evidence=[f"{related_qubit}_set" for related_qubit in related_qubits],
-                               evidence_card=[3, ] * len(related_qubits),
-                               )
         
+        futures.append(executor.submit(construct_cpd, qubit, related_qubits, protocol_results))
         
-        # print(qubit_cpd)
+    for future in as_completed(futures):
+        qubit_cpd = future.result()
         cpds.append(qubit_cpd)
-
     
     model = BayesianNetwork(network_edges)  #TODO: 可以加latent
     model.add_cpds(*cpds)
@@ -348,3 +358,24 @@ def correlation_based_partation_PMI(protocol_results, n_qubits):
 #     # variables=["bronc"], evidence={"smoke": "no"})
 #     # , virtual_evidence=[lung_virt_evidence]
 #     return
+
+def calculate_correlation(n_qubits, real_bitstring, result, n_samples):
+    local_tmp = np.zeros((n_qubits, n_qubits, 2, 3))
+    local_uncertainty = np.zeros((n_qubits, n_qubits, 2, 3))
+    for measure_bitstring, count in result.items():
+        origin_bitstring = copy.deepcopy(real_bitstring)
+        if '2' in origin_bitstring:
+            origin_bitstring = origin_bitstring.replace('2','0')
+            measure_bitstring = measure_bitstring.replace('2','0')
+        if int(origin_bitstring, base=2) ^ int(measure_bitstring, base=2) != 0:
+            error_qubits = bin(int(origin_bitstring, base=2) ^ int(measure_bitstring, base=2)).replace('0b','').zfill(n_qubits)#[::-1]
+            for qubit_idx, is_error in enumerate(error_qubits):
+                if is_error == '0':
+                    continue
+                
+                for i in range(n_qubits):
+                    if qubit_idx == i:
+                        continue
+                    local_tmp[qubit_idx][i][int(origin_bitstring[qubit_idx])][int(real_bitstring[i])] += count / n_samples
+                    local_uncertainty[qubit_idx][i][int(origin_bitstring[qubit_idx])][int(real_bitstring[i])] += 1
+    return local_tmp, local_uncertainty
