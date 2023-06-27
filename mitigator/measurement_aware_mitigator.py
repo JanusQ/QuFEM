@@ -88,11 +88,13 @@ class BayesianMitigator(ParticalLocalMitigator):
         
         return ParticalLocalMitigator(n_measured_qubits, group2M)
             
-    def mitigate(self, stats_counts: dict, circuit: QuantumCircuit = None, threshold: float = None, mask_bitstring: str = None):
+    def mitigate(self, stats_counts: dict, circuit: QuantumCircuit = None, threshold: float = None, mask_bitstring: str = None, measured_qubits: list = None):
         '''假设group之间没有重叠的qubit'''
         n_qubits = self.n_qubits
         
-        if circuit is not None:
+        if measured_qubits is not None:
+            measured_qubits = tuple(measured_qubits)
+        elif circuit is not None:
             measured_qubits =[
                 instruction.qubits[0].index
                 for instruction in circuit
@@ -115,6 +117,26 @@ class BayesianMitigator(ParticalLocalMitigator):
         stats_counts = downsample(stats_counts, measured_qubits)  # 剃掉不测量的比特
 
         mitigated_stats_counts = plm.mitigate(stats_counts, threshold = threshold)
+        
+        extend_status_counts = {}
+        for bitstring, count in mitigated_stats_counts.items():
+            extend_bitstring = ['2'] * self.n_qubits
+            for pos, qubit in enumerate(measured_qubits):
+                extend_bitstring[qubit] = bitstring[pos]
+            extend_status_counts[''.join(extend_bitstring)] = count
+
+        return extend_status_counts
+    
+
+    def add_error(self, stats_counts: dict, measured_qubits: list, threshold: float = None):
+        '''输入没有噪声的，反过来预测有噪声的情况'''
+        n_qubits = self.n_qubits
+        
+        plm: ParticalLocalMitigator = self.get_partical_local_mitigator(tuple(measured_qubits))
+        
+        stats_counts = downsample(stats_counts, measured_qubits)  # 剃掉不测量的比特
+
+        mitigated_stats_counts = plm.add_error(stats_counts, threshold = threshold)
         
         extend_status_counts = {}
         for bitstring, count in mitigated_stats_counts.items():

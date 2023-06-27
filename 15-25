@@ -104,3 +104,4 @@ qubits: 23, iter: 0, score: 0.606651251653533, datasize: 92
 qubits: 23, iter: 1, score: 0.6286275699330609, datasize: 184
 qubits: 23, iter: 2, score: 0.6320103618897588, datasize: 276
 qubits: 23, iter: 3, score: 0.6280998940471407, datasize: 368
+qubits: 23, iter: 4, score: 0.6276655573271921, datasize: 460

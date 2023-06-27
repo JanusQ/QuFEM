@@ -219,11 +219,9 @@ def draw_correlation_graph(graph):
 # 相关性的度量 q1的值对q2出错的概率的影响
 def correlation_based_partation(protocol_results, group_size, n_qubits):
     '''这里用的是概率差'''
-    # error_count = np.zeros(shape=(n_qubits, 2, n_qubits, 2, 1))   # qubit1 -> value -> qubit2 -> value -> error_frequency
-    # all_count = np.zeros(shape=(n_qubits, 2, n_qubits, 2, 1))
     # qubit1 -> value -> qubit2 -> value -> error_frequency
-    error_count = np.zeros(shape=(n_qubits, 2, n_qubits, 1))
-    all_count = np.zeros(shape=(n_qubits, 2, n_qubits, 1))
+    error_count = np.zeros(shape=(n_qubits, 3, n_qubits, 1))  # qubit1的值对qubit2的影响
+    all_count = np.zeros(shape=(n_qubits, 3, n_qubits, 1))
 
     '''可能可以换一个更加合理的'''
     for real_bitstring, status_count in protocol_results.items():
@@ -255,8 +253,9 @@ def correlation_based_partation(protocol_results, group_size, n_qubits):
 
     error_freq = error_count / all_count
     # np.where(np.abs(error_freq[:,:,:,0]-error_freq[:,:,:,1])>0.03)
-    # corr_qubit_pairs =
-    freq_diff = np.abs(error_freq[:, 0, :]-error_freq[:, 1, :])
+
+    # 现在有三种情况了，0,1,2
+    freq_diff = np.abs(error_freq[:, 0, :]-error_freq[:, 1, :]) + np.abs(error_freq[:, 0, :]-error_freq[:, 2, :]) + np.abs(error_freq[:, 1, :]-error_freq[:, 2, :])
     large_corr_qubit_pairs = np.where(freq_diff > 0.01)  # (q1, q2, 0)
 
     graph = nx.Graph()
