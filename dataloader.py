@@ -1,15 +1,46 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
+from tqdm import tqdm
 from correlation_analysis import calculate_correlation
 from mitigator.measurement_aware_mitigator import BayesianMitigator
 from mitigator.partical_local_mitigator import ParticalLocalMitigator
 from utils import load
 from mitigator.protocol_circuits import MeasuremtAwareEnumeratedProtocol
+
+def hamming_distance(string1, string2):
+    dist_counter = 0
+    for n in range(len(string1)):
+        if string1[n] != string2[n]:
+            dist_counter += 1
+    return dist_counter
+    
 class Dataloader():
     def __init__(self, simulator,):
         self.n_qubits = simulator.n_qubits
         self.simulator = simulator
     
+
+
+
+    def eval_plm_hamming(self, plm: ParticalLocalMitigator, protocol_results):
+        mitigated_protocol_results = {
+            real_bitstring: {
+                measured_bitstring: value * 1000  # 防止精度丢失
+                for measured_bitstring, value in plm.mitigate(status_count, mask_bitstring = real_bitstring, threshold = 1e-3).items()  # 可能要乘以一个大的数字防止精度降低
+            }
+            for real_bitstring, status_count in tqdm(protocol_results.items())
+        }
+
+        total_dist = 0
+        n_total = 0
+        
+        for real_bitstring, status_count in mitigated_protocol_results.items():
+            n_total += sum(status_count.values())
+            for measured_bitstring, count in status_count.items():
+                total_dist += hamming_distance(measured_bitstring, real_bitstring) * count
+
+        return total_dist/n_total, mitigated_protocol_results
+
     def get_iter_protocol_results(self, all_res, cnt, bitstring_dataset):
         iter_res = {}
         i = 0
@@ -102,10 +133,12 @@ class Dataloader():
                     groups = None
                     continue
                     
-                score, mitigated_protocol_results = self.eval_plm(mitigator, protocol_results_dataset)
-                if len(iter_score) != 0 and (score - iter_score[-1]) < 1e-3:
-                    stop += 1 
-                print(f'qubits: {n_qubits}, iter: {iter}, score: {score}, datasize: {len(bitstring_dataset)}')
+                score, mitigated_protocol_results = self.eval_plm_hamming(mitigator, protocol_results_dataset)
+                if len(iter_score) != 0 and (score - iter_score[-1]) > 1e-3:
+                    stop += 1
+                else:
+                    stop = 0
+                print(f'qubits: {n_qubits}, iter: {iter}, dist: {score}, datasize: {len(bitstring_dataset)}')
                 iter_score.append(score)
                 iter += 1
                 

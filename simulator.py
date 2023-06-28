@@ -244,7 +244,7 @@ class MeasurementAwareNonLocalSimulator(Simulator):
             ]
             # print(circuit)
             
-            new_error_results.append(dict(self.add_error(result)))
+            new_error_results.append(dict(self.add_error(result, measured_qubits)))
             
         return new_error_results
     
